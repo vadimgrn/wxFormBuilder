@@ -280,6 +280,15 @@ wxPGProperty* wxFBBitmapProperty::CreatePropertyResourceName()
     return propResName;
 }
 
+wxPGProperty* wxFBBitmapProperty::CreatePropertyResourceNameDark()
+{
+    // Create 'resource_name_dark' property (common for 'Load From Resource', 'Load From Icon Resource', 'Load From SVG Resource' choices)
+    wxPGProperty* propResName = new wxStringProperty(wxT("resource_name_dark"), wxPG_LABEL);
+    propResName->SetHelpString(_("Windows Only. Name of the resource in the .rc file for Dark appearance."));
+
+    return propResName;
+}
+
 wxPGProperty* wxFBBitmapProperty::CreatePropertyIconSize()
 {
     // Create 'ico_size' property ('Load From Icon Resource' only)
@@ -533,10 +542,10 @@ wxVariant wxFBBitmapProperty::ChildChanged(wxVariant& thisValue, const int child
                         bp->AppendChild(bp->CreatePropertyFilePath());
                     }
 
-                    if (childVals.GetCount() == 2) {
-                        newVal = childVals.Item(0) + wxT("; ") + childVals.Item(1);
-                    } else if (childVals.GetCount() > 0) {
-                        newVal = childVals.Item(0) + wxT("; ");
+                    if (auto cnt = childVals.GetCount(); cnt == 2) {
+                        newVal = wxString::Format(wxT("%s; %s"), childVals.Item(0), childVals.Item(1));
+                    } else if (cnt > 0) {
+                        newVal = wxString::Format(wxT("%s; "), childVals.Item(0));
                     }
                     break;
                 }
@@ -550,12 +559,13 @@ wxVariant wxFBBitmapProperty::ChildChanged(wxVariant& thisValue, const int child
                             }
                         }
                         bp->AppendChild(bp->CreatePropertyResourceName());
+                        bp->AppendChild(bp->CreatePropertyResourceNameDark());
                     }
 
-                    if (childVals.GetCount() == 2) {
-                        newVal = childVals.Item(0) + wxT("; ") + childVals.Item(1);
-                    } else if (childVals.GetCount() > 0) {
-                        newVal = childVals.Item(0) + wxT("; ");
+                    if (auto cnt = childVals.GetCount(); cnt == 3) {
+                        newVal = wxString::Format(wxT("%s; %s; %s"), childVals.Item(0), childVals.Item(1), childVals.Item(2));
+                    } else if (cnt > 0) {
+                        newVal = wxString::Format(wxT("%s; ; "), childVals.Item(0));
                     }
                     break;
                 }
@@ -570,14 +580,15 @@ wxVariant wxFBBitmapProperty::ChildChanged(wxVariant& thisValue, const int child
                             }
                         }
                         bp->AppendChild(bp->CreatePropertyResourceName());
+                        bp->AppendChild(bp->CreatePropertyResourceNameDark());
                         bp->AppendChild(childVal == 3 ? bp->CreatePropertyIconSize() : bp->CreatePropertyDefaultSize());
                     }
 
-                    if (childVals.GetCount() == 3) {
-                        newVal =
-                          childVals.Item(0) + wxT("; ") + childVals.Item(1) + wxT("; [") + childVals.Item(2) + wxT("]");
-                    } else if (childVals.GetCount() > 0) {
-                        newVal = childVals.Item(0) + wxT("; ; []");
+                    if (auto cnt = childVals.GetCount(); cnt == 4) {
+                        newVal = wxString::Format(wxT("%s; %s; %s; [%s]"), 
+                            childVals.Item(0), childVals.Item(1), childVals.Item(2), childVals.Item(3));
+                    } else if (cnt > 0) {
+                        newVal = wxString::Format(wxT("%s; ; ; []"), childVals.Item(0));
                     }
                     break;
                 }
@@ -593,10 +604,10 @@ wxVariant wxFBBitmapProperty::ChildChanged(wxVariant& thisValue, const int child
                         bp->AppendChild(bp->CreatePropertyXrcName());
                     }
 
-                    if (childVals.GetCount() == 2) {
-                        newVal = childVals.Item(0) + wxT("; ") + childVals.Item(1);
-                    } else if (childVals.GetCount() > 0) {
-                        newVal = childVals.Item(0) + wxT("; ");
+                    if (auto cnt = childVals.GetCount(); cnt == 2) {
+                        newVal = wxString::Format(wxT("%s; %s"), childVals.Item(0), childVals.Item(1));
+                    } else if (cnt > 0) {
+                        newVal = wxString::Format(wxT("%s; "), childVals.Item(0));
                     }
                     break;
                 }
@@ -613,10 +624,11 @@ wxVariant wxFBBitmapProperty::ChildChanged(wxVariant& thisValue, const int child
                         bp->AppendChild(bp->CreatePropertyArtClient());
                     }
 
-                    if (childVals.GetCount() == 3) {
-                        newVal = childVals.Item(0) + wxT("; ") + childVals.Item(1) + wxT("; ") + childVals.Item(2);
-                    } else if (childVals.GetCount() > 0) {
-                        newVal = childVals.Item(0) + wxT("; ; ");
+                    if (auto cnt = childVals.GetCount(); cnt == 3) {
+                        newVal = wxString::Format(wxT("%s; %s; %s"), 
+                            childVals.Item(0), childVals.Item(1), childVals.Item(2));
+                    } else if (cnt > 0) {
+                        newVal = wxString::Format(wxT("%s; ; "), childVals.Item(0));
                     }
                     break;
                 }
@@ -663,9 +675,12 @@ void wxFBBitmapProperty::UpdateChildValues(const wxString& value)
 {
     wxArrayString childVals;
     GetChildValues(value, childVals);
-
-    if (childVals[0].Contains(_("Load From File")) || childVals[0].Contains(_("Load From Embedded File"))) {
-        if (childVals.Count() > 1) {
+    
+    auto &source = childVals[0]; 
+    auto cnt = childVals.Count();
+    
+    if (source == _("Load From File") || source == _("Load From Embedded File")) {
+        if (cnt > 1) {
             wxString img = childVals[1];
             img = SetupImage(img);
             wxFileName imgPath(img);
@@ -677,33 +692,42 @@ void wxFBBitmapProperty::UpdateChildValues(const wxString& value)
                 Item(1)->SetValueToUnspecified();
             }
         }
-    } else if (childVals[0].Contains(_("Load From Resource"))) {
-        if (childVals.Count() > 1) {
-            Item(1)->SetValue(childVals[1]);
-        }
-    } else if (childVals[0].Contains(_("Load From Icon Resource")) || childVals[0].Contains(_("Load From SVG Resource"))) {
-        if (childVals.Count() > 1) {
+    } else if (source == _("Load From Resource")) {
+        if (cnt > 1) {
             Item(1)->SetValue(childVals[1]);
         }
 
-        if (childVals.Count() > 2) {
+        if (cnt > 2) {
+            Item(2)->SetValue(childVals[2]);
+        }
+    } else if (source == _("Load From Icon Resource") || source == _("Load From SVG Resource")) {
+        if (cnt > 1) {
+            Item(1)->SetValue(childVals[1]);
+        }
+
+        if (cnt > 2) {
+            Item(2)->SetValue(childVals[2]);
+        }
+
+        if (cnt > 3) {
             // This child requires a wxSize as data type, not a wxString
             // The string format of a wxSize doesn't match the display format,
             // convert it like ObjectInspector does
-            wxString aux = childVals[2];
+            wxString aux = childVals[3];
             aux.Replace(wxT(";"), wxT(","));
-            Item(2)->SetValue(WXVARIANT(TypeConv::StringToSize(aux)));
+            Item(3)->SetValue(WXVARIANT(TypeConv::StringToSize(aux)));
         }
-    } else if (childVals[0].Contains(_("Load From XRC"))) {
-        if (childVals.Count() > 1) {
+
+    } else if (source == _("Load From XRC")) {
+        if (cnt > 1) {
             Item(1)->SetValue(childVals[1]);
         }
-    } else if (childVals[0].Contains(_("Load From Art Provider"))) {
-        if (childVals.Count() > 1) {
+    } else if (source == _("Load From Art Provider")) {
+        if (cnt > 1) {
             Item(1)->SetValue(childVals[1]);
         }
 
-        if (childVals.Count() > 2) {
+        if (cnt > 2) {
             Item(2)->SetValue(childVals[2]);
         }
     }

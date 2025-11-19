@@ -95,6 +95,7 @@ public:
     wxPGProperty* CreatePropertySource(int sourceIndex = 0);
     wxPGProperty* CreatePropertyFilePath();
     wxPGProperty* CreatePropertyResourceName();
+    wxPGProperty* CreatePropertyResourceNameDark();
     wxPGProperty* CreatePropertyIconSize();
     wxPGProperty* CreatePropertyDefaultSize();
     wxPGProperty* CreatePropertyXrcName();
